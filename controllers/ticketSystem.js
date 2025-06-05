@@ -51,7 +51,7 @@
 
 
 const db = require("../config/db");
-exports.agentPerformance = async (req, res) => {
+const agentPerformance = async (req, res) => {
     try {
         const result = await db.query(`
             SELECT
@@ -98,11 +98,13 @@ exports.agentPerformance = async (req, res) => {
     }
 };
 
+// module.exports = {agentPerformance};
+
 
 // **************************      Resolution Time Distribution    *************
 
 
-exports.resolutionTimeDistribution = async (req, res) => {
+const resolutionTimeDistribution = async (req, res) => {
     try {
         const rows = await db.query(`
       SELECT
@@ -143,13 +145,15 @@ exports.resolutionTimeDistribution = async (req, res) => {
     }
 };
 
+// module.exports = {resolutionTimeDistribution};
+
 
 
 // ***************************************     Ticket by Category   *****************
 
 
 
-exports.categoryDistribution = async (req, res) => {
+const categoryDistribution = async (req, res) => {
     try {
         const rows = await db.query(`
       SELECT 
@@ -173,3 +177,8 @@ exports.categoryDistribution = async (req, res) => {
     }
 };
 
+module.exports = {
+    categoryDistribution,
+    resolutionTimeDistribution,
+    agentPerformance
+};

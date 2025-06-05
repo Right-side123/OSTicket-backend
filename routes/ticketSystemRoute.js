@@ -1,8 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const agentPerformance = require('../controllers/ticketSystem');
+const { agentPerformance,
+    categoryDistribution,
+    resolutionTimeDistribution } = require('../controllers/ticketSystem');
 
 
-router.get('/dashboard', agentPerformance);
+router.get('/agentperformance', agentPerformance);
+router.get('/categoryTicket', categoryDistribution);
+router.get('/resolutiontimedistribution', resolutionTimeDistribution);
 
 module.exports = router;
