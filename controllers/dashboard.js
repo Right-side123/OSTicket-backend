@@ -3,19 +3,25 @@ const db = require('../config/db');
 const getDashboardData = async (req, res) => {
   const { startDate, endDate } = req.query;
 
+  const startDateTime = `${startDate} 00:00:00`;
+  const endDateTime = `${endDate} 23:59:59`;
+
+  // console.log("Start:", startDate, "End:", endDate);
+
+
   try {
     const [tickets] = await db.query(`
       SELECT COUNT(*) AS totalTickets FROM ost_ticket
-      WHERE created BETWEEN ? AND ?`, [startDate, endDate]);
+      WHERE created BETWEEN ? AND ?`, [startDateTime, endDateTime]);
 
     const [resolved] = await db.query(`
       SELECT COUNT(*) AS totalResolved FROM ost_ticket
-      WHERE closed IS NOT NULL AND created BETWEEN ? AND ?`, [startDate, endDate]);
+      WHERE closed IS NOT NULL AND created BETWEEN ? AND ?`, [startDateTime, endDateTime]);
 
     const [avgResolution] = await db.query(`
       SELECT AVG(TIMESTAMPDIFF(SECOND, created, closed) / 3600) AS avgResolutionTime
       FROM ost_ticket
-      WHERE closed IS NOT NULL AND created BETWEEN ? AND ?`, [startDate, endDate]);
+      WHERE closed IS NOT NULL AND created BETWEEN ? AND ?`, [startDateTime, endDateTime]);
 
     const [firstResponse] = await db.query(`
       SELECT AVG(TIMESTAMPDIFF(SECOND, t.created, te.first_response_time) / 3600) AS avgFirstResponseTime
@@ -32,7 +38,7 @@ const getDashboardData = async (req, res) => {
         GROUP BY ticket.ticket_id
       ) AS te
       JOIN ost_ticket t ON te.ticket_id = t.ticket_id;
-    `, [startDate, endDate]);
+    `, [startDateTime, endDateTime]);
 
     res.json({
       totalTickets: tickets.totalTickets ? Number(tickets.totalTickets) : 0,
@@ -85,7 +91,7 @@ const getChartData = async (req, res) => {
     } else {
       ticketResults = [];
     }
-    console.log('Normalized ticketResults:', ticketResults);
+    // console.log('Normalized ticketResults:', ticketResults);
 
     let responseResults = [];
     try {
@@ -109,9 +115,9 @@ const getChartData = async (req, res) => {
       `, [groupFormat, startDateTime, endDateTime]);
 
       responseResults = result || [];
-      console.log('📬 responseResults:', responseResults);
+      // console.log('responseResults:', responseResults);
     } catch (err) {
-      console.error('❌ DB error (responseResults):', err);
+      console.error('DB error (responseResults):', err);
       responseResults = [];
     }
 
@@ -130,11 +136,11 @@ const getChartData = async (req, res) => {
       avgFirstResponseTime: responseMap[row.period] || '0'
     }));
 
-    console.log('finalData:', finalData);
+    // console.log('finalData:', finalData);
 
     res.json(finalData);
   } catch (err) {
-    console.error('❌ DB error:', err);
+    console.error('DB error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

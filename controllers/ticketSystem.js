@@ -51,24 +51,42 @@
 
 
 const db = require("../config/db");
+
 const agentPerformance = async (req, res) => {
     try {
         const result = await db.query(`
-            SELECT
-            s.staff_id,
-                CONCAT(s.firstname, ' ', s.lastname) AS name,
-                COUNT(t.ticket_id) AS assigned,
-                SUM(t.status_id = 3) AS closed,
-                CONCAT(ROUND(SUM(t.status_id = 3) / COUNT(t.ticket_id) * 100), '%') AS closerrate,
-                SEC_TO_TIME(AVG(CASE WHEN t.status_id = 3 THEN UNIX_TIMESTAMP(t.closed) - UNIX_TIMESTAMP(t.created) END)) AS avg_resolution_time,
-                SEC_TO_TIME(AVG(CASE WHEN t.status_id = 3 THEN UNIX_TIMESTAMP(th.created) - UNIX_TIMESTAMP(t.created) END)) AS avg_response
-            FROM ost_staff s
-            LEFT JOIN ost_ticket t ON t.staff_id = s.staff_id
-            LEFT JOIN ost_thread th ON t.ticket_id = th.object_id AND th.object_type = 'T'
-            GROUP BY s.staff_id, s.firstname, s.lastname
-            `);
+      SELECT
+        s.staff_id,
+        
+        CONCAT(s.firstname, ' ', s.lastname) AS name,
+        COUNT(t.ticket_id) AS assigned,
+        SUM(t.status_id = 3) AS closed,
+        CONCAT(ROUND(SUM(t.status_id = 3) / COUNT(t.ticket_id) * 100), '%') AS closerrate,
+        TIME_FORMAT(SEC_TO_TIME(AVG(CASE WHEN t.status_id = 3 THEN UNIX_TIMESTAMP(t.closed) - UNIX_TIMESTAMP(t.created) END)), '%H:%i:%s') AS avg_resolution_time,
+        
+        TIME_FORMAT(SEC_TO_TIME(AVG(
+  CASE 
+    WHEN t.status_id = 3 THEN UNIX_TIMESTAMP(fr.first_response_time) - UNIX_TIMESTAMP(t.created)
+    ELSE NULL
+  END
+)), '%H:%i:%s') AS avg_response
 
-        // console.log("Result from DB:", result);
+      FROM ost_staff s
+      LEFT JOIN ost_ticket t ON t.staff_id = s.staff_id
+      LEFT JOIN (
+        -- Subquery to find first response time per ticket
+        SELECT 
+          ticket.ticket_id,
+          MIN(entry.created) AS first_response_time
+        FROM ost_ticket ticket
+        JOIN ost_thread thread ON thread.object_id = ticket.ticket_id AND thread.object_type = 'T'
+        JOIN ost_thread_entry entry ON entry.thread_id = thread.id
+        WHERE entry.type = 'R'
+        GROUP BY ticket.ticket_id
+      ) AS fr ON t.ticket_id = fr.ticket_id
+      
+      GROUP BY s.staff_id, s.firstname, s.lastname
+    `);
 
         const rows = Array.isArray(result) ? result : result.rows || result[0] || [];
 
@@ -98,7 +116,7 @@ const agentPerformance = async (req, res) => {
     }
 };
 
-// module.exports = {agentPerformance};
+// module.exports = { agentPerformance };
 
 
 // **************************      Resolution Time Distribution    *************
