@@ -74,7 +74,6 @@ const agentPerformance = async (req, res) => {
       FROM ost_staff s
       LEFT JOIN ost_ticket t ON t.staff_id = s.staff_id
       LEFT JOIN (
-        -- Subquery to find first response time per ticket
         SELECT 
           ticket.ticket_id,
           MIN(entry.created) AS first_response_time
